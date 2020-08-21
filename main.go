@@ -19,13 +19,12 @@ package main
 
 import (
 	"context"
-//	"flag"
+	//	"flag"
 	"fmt"
-//	"os"
-//	"path/filepath"
-	"time"
+	//	"os"
+	//	"path/filepath"
+	"net/http"
 
-	"k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -42,6 +41,14 @@ import (
 
 func main() {
 
+	http.HandleFunc("/", kdata)
+	fmt.Println("Starting the server at port 8080")
+	http.ListenAndServe(":8080", nil)
+
+}
+
+func kdata(w http.ResponseWriter, r *http.Request) {
+
 	config, err := clientcmd.BuildConfigFromFlags("", "./config")
 
 	if err != nil {
@@ -53,48 +60,18 @@ func main() {
 	if err != nil {
 		panic(err.Error())
 	}
-	for {
-		pods, err := clientset.CoreV1().Pods("").List(context.TODO(), metav1.ListOptions{})
-		if err != nil {
-			panic(err.Error())
-		}
-		fmt.Printf("There are %d pods in the cluster\n", len(pods.Items))
 
-                nodes, err := clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
-                fmt.Println(nodes.Items[0].ObjectMeta.Name)
-                fmt.Println(nodes.Items[0].ObjectMeta.Labels)
+	nodes, err := clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 
-
-		for i := 0; i < len(nodes.Items); i++ {
-			node_name := nodes.Items[i].ObjectMeta.Name
-			node_label := nodes.Items[i].ObjectMeta.Labels
-			for label, _ := range node_label {
-				if label == "arch" {
-					fmt.Println("Arch label found in node ", node_name)
-					break
-				}
+	for i := 0; i < len(nodes.Items); i++ {
+		node_name := nodes.Items[i].ObjectMeta.Name
+		node_label := nodes.Items[i].ObjectMeta.Labels
+		for label, _ := range node_label {
+			if label == "arch" {
+				fmt.Fprintf(w, "Arch label found in node %s\n", node_name)
+				break
 			}
-			fmt.Println("No arch label found in node ", node_name)
 		}
-
-
-		// Examples for error handling:
-     		// - Use helper functions like e.g. errors.IsNotFound()
-		// - And/or cast to StatusError and use its properties like e.g. ErrStatus.Message
-		namespace := "default"
-		pod := "example-xxxxx"
-		_, err = clientset.CoreV1().Pods(namespace).Get(context.TODO(), pod, metav1.GetOptions{})
-		if errors.IsNotFound(err) {
-			fmt.Printf("Pod %s in namespace %s not found\n", pod, namespace)
-		} else if statusError, isStatus := err.(*errors.StatusError); isStatus {
-			fmt.Printf("Error getting pod %s in namespace %s: %v\n",
-				pod, namespace, statusError.ErrStatus.Message)
-		} else if err != nil {
-			panic(err.Error())
-		} else {
-			fmt.Printf("Found pod %s in namespace %s\n", pod, namespace)
-		}
-
-		time.Sleep(10 * time.Second)
+		fmt.Fprintf(w, "No arch label found in node %s\n", node_name)
 	}
 }
