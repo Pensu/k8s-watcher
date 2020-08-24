@@ -27,7 +27,13 @@ import (
 	//	"path/filepath"
 	"net/http"
 
+	"bufio"
+	"bytes"
+	"log"
+
 	"github.com/jackc/pgx/v4"
+	sshrw "github.com/mosolovsa/go_cat_sshfilerw"
+	"golang.org/x/crypto/ssh"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -51,6 +57,8 @@ func main() {
 }
 
 func kdata(w http.ResponseWriter, r *http.Request) {
+
+	getConfigfile()
 
 	name, label_req := getpostpresdata()
 
@@ -100,4 +108,40 @@ func getpostpresdata() (string, string) {
 	}
 
 	return name, label_req
+}
+
+func getConfigfile() {
+
+	user := os.Getenv("USER")
+	passwd := os.Getenv("PASSWORD")
+	server := os.Getenv("SERVER")
+
+	cfg := ssh.ClientConfig{
+		User: user,
+		Auth: []ssh.AuthMethod{
+			ssh.Password(passwd),
+		},
+		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+	}
+
+	c, err := sshrw.NewSSHclt(server+":22", &cfg)
+	if err != nil {
+		log.Panicln("Can't start ssh connection, err:", err.Error())
+	}
+
+	var buff bytes.Buffer
+	w := bufio.NewWriter(&buff)
+	if err = c.ReadFile(w, "/root/config"); err != nil {
+		log.Println("Error on file read: ", err.Error())
+	}
+	w.Flush()
+	log.Println(buff.String())
+
+	out, _ := os.Create("./config")
+	defer out.Close()
+
+	w_new := bufio.NewWriter(out)
+	_, err = fmt.Fprintf(w_new, "%s", buff.String())
+	w_new.Flush()
+	fmt.Println(err)
 }
