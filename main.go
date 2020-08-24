@@ -19,12 +19,15 @@ package main
 
 import (
 	"context"
+	"os"
+
 	//	"flag"
 	"fmt"
 	//	"os"
 	//	"path/filepath"
 	"net/http"
 
+	"github.com/jackc/pgx/v4"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -49,6 +52,23 @@ func main() {
 
 func kdata(w http.ResponseWriter, r *http.Request) {
 
+	conn, err := pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
+		os.Exit(1)
+	}
+	defer conn.Close(context.Background())
+
+	var name string
+	var label_req string
+	err = conn.QueryRow(context.Background(), "select name, label from test").Scan(&name, &label_req)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "QueryRow failed: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Println(name, label_req)
+
 	config, err := clientcmd.BuildConfigFromFlags("", "./config")
 
 	if err != nil {
@@ -67,11 +87,11 @@ func kdata(w http.ResponseWriter, r *http.Request) {
 		node_name := nodes.Items[i].ObjectMeta.Name
 		node_label := nodes.Items[i].ObjectMeta.Labels
 		for label, _ := range node_label {
-			if label == "arch" {
-				fmt.Fprintf(w, "Arch label found in node %s\n", node_name)
+			if label == label_req {
+				fmt.Fprintf(w, "%s label found in node %s\n", label_req, node_name)
 				break
 			}
 		}
-		fmt.Fprintf(w, "No arch label found in node %s\n", node_name)
+		fmt.Fprintf(w, "No %s label found in node %s\n", label_req, node_name)
 	}
 }
