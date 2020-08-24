@@ -52,20 +52,7 @@ func main() {
 
 func kdata(w http.ResponseWriter, r *http.Request) {
 
-	conn, err := pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
-		os.Exit(1)
-	}
-	defer conn.Close(context.Background())
-
-	var name string
-	var label_req string
-	err = conn.QueryRow(context.Background(), "select name, label from test").Scan(&name, &label_req)
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "QueryRow failed: %v\n", err)
-		os.Exit(1)
-	}
+	name, label_req := getpostpresdata()
 
 	fmt.Println(name, label_req)
 
@@ -94,4 +81,23 @@ func kdata(w http.ResponseWriter, r *http.Request) {
 		}
 		fmt.Fprintf(w, "No %s label found in node %s\n", label_req, node_name)
 	}
+}
+
+func getpostpresdata() (string, string) {
+	conn, err := pgx.Connect(context.Background(), os.Getenv("DATABASE_URL"))
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Unable to connect to database: %v\n", err)
+		os.Exit(1)
+	}
+	defer conn.Close(context.Background())
+
+	var name string
+	var label_req string
+	err = conn.QueryRow(context.Background(), "select name, label from test").Scan(&name, &label_req)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "QueryRow failed: %v\n", err)
+		os.Exit(1)
+	}
+
+	return name, label_req
 }
