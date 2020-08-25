@@ -19,6 +19,7 @@ package main
 
 import (
 	"context"
+	"io"
 	"os"
 
 	//	"flag"
@@ -26,14 +27,9 @@ import (
 	//	"os"
 	//	"path/filepath"
 	"net/http"
-
-	"bufio"
-	"bytes"
-	"log"
+	"strings"
 
 	"github.com/jackc/pgx/v4"
-	sshrw "github.com/mosolovsa/go_cat_sshfilerw"
-	"golang.org/x/crypto/ssh"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/tools/clientcmd"
@@ -78,15 +74,22 @@ func kdata(w http.ResponseWriter, r *http.Request) {
 
 	nodes, err := clientset.CoreV1().Nodes().List(context.TODO(), metav1.ListOptions{})
 
+	fmt.Fprintf(w, "\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n")
+
+	fmt.Fprintf(w, strings.Repeat(" ", 120))
+	fmt.Fprintf(w, "K8s-watcher\n\n\n\n")
+
 	for i := 0; i < len(nodes.Items); i++ {
 		node_name := nodes.Items[i].ObjectMeta.Name
 		node_label := nodes.Items[i].ObjectMeta.Labels
 		for label, _ := range node_label {
 			if label == label_req {
+				fmt.Fprintf(w, strings.Repeat(" ", 100))
 				fmt.Fprintf(w, "%s label found in node %s\n", label_req, node_name)
 				break
 			}
 		}
+		fmt.Fprintf(w, strings.Repeat(" ", 100))
 		fmt.Fprintf(w, "No %s label found in node %s\n", label_req, node_name)
 	}
 }
@@ -112,7 +115,7 @@ func getpostpresdata() (string, string) {
 
 func getConfigfile() {
 
-	user := os.Getenv("USER")
+	/* user := os.Getenv("USER")
 	passwd := os.Getenv("PASSWORD")
 	server := os.Getenv("SERVER")
 
@@ -143,5 +146,15 @@ func getConfigfile() {
 	w_new := bufio.NewWriter(out)
 	_, err = fmt.Fprintf(w_new, "%s", buff.String())
 	w_new.Flush()
-	fmt.Println(err)
+	fmt.Println(err)*/
+
+	out, _ := os.Create("config")
+	defer out.Close()
+
+	resp, _ := http.Get("http://139.59.89.61:8000/config")
+	defer resp.Body.Close()
+
+	n, _ := io.Copy(out, resp.Body)
+
+	fmt.Println(n)
 }
