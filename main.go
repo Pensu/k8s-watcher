@@ -115,43 +115,12 @@ func getpostpresdata() (string, string) {
 
 func getConfigfile() {
 
-	/* user := os.Getenv("USER")
-	passwd := os.Getenv("PASSWORD")
 	server := os.Getenv("SERVER")
-
-	cfg := ssh.ClientConfig{
-		User: user,
-		Auth: []ssh.AuthMethod{
-			ssh.Password(passwd),
-		},
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
-	}
-
-	c, err := sshrw.NewSSHclt(server+":22", &cfg)
-	if err != nil {
-		log.Panicln("Can't start ssh connection, err:", err.Error())
-	}
-
-	var buff bytes.Buffer
-	w := bufio.NewWriter(&buff)
-	if err = c.ReadFile(w, "/root/config"); err != nil {
-		log.Println("Error on file read: ", err.Error())
-	}
-	w.Flush()
-	log.Println(buff.String())
-
-	out, _ := os.Create("./config")
-	defer out.Close()
-
-	w_new := bufio.NewWriter(out)
-	_, err = fmt.Fprintf(w_new, "%s", buff.String())
-	w_new.Flush()
-	fmt.Println(err)*/
 
 	out, _ := os.Create("config")
 	defer out.Close()
 
-	resp, _ := http.Get("http://139.59.89.61:8000/config")
+	resp, _ := http.Get("http://" + server + ":8000/config")
 	defer resp.Body.Close()
 
 	n, _ := io.Copy(out, resp.Body)
