@@ -90,6 +90,7 @@ func kdata(w http.ResponseWriter, r *http.Request) {
 			} else {
 				fmt.Fprintf(w, strings.Repeat(" ", 100))
 				fmt.Fprintf(w, "No %s label found in node %s\n", label_req, node_name)
+				break
 			}
 		}
 	}
